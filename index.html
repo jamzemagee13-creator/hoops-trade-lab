@@ -95,8 +95,13 @@ input[type=text],input[type=search],select{background:var(--panel);border:1px so
 .pad{padding:14px}
 
 /* Trade slip */
-.bench{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
-@media (max-width:900px){.bench{grid-template-columns:minmax(0,1fr)}}
+/* Desktop: slip and needs stack on the left, verdict alongside. Phones: slip, then verdict, then needs. */
+.bench{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:auto 1fr;
+  grid-template-areas:"slip verdict" "needs verdict";column-gap:20px;row-gap:16px;align-items:start}
+.bench > :first-child{grid-area:slip}
+.bench > .verdict{grid-area:verdict}
+.bench > .needs{grid-area:needs}
+@media (max-width:900px){.bench{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"slip" "verdict" "needs"}}
 .teams{display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:12px}
 .teams label{display:flex;flex-direction:column;gap:4px;flex:1 1 180px;min-width:0}
 .teams select{width:100%}
@@ -143,7 +148,7 @@ input[type=text],input[type=search],select{background:var(--panel);border:1px so
 .mv .route{color:var(--muted);font-size:12px}
 
 /* Team needs */
-.needs{margin-top:16px}
+.needs{margin-top:0}
 .needs-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:10px 0 18px}
 @media (max-width:560px){.needs-grid{grid-template-columns:minmax(0,1fr)}}
 .ncard{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
@@ -311,9 +316,9 @@ td.slot{font:600 11px/1 var(--mono);color:var(--muted)}
           </div>
           <div class="slip" id="slip"></div>
           <div class="slip-tools" id="slipTools"></div>
-          <div class="panel pad needs" id="needs"></div>
         </div>
         <div class="panel verdict" id="verdict"></div>
+        <div class="panel pad needs" id="needs"></div>
       </div>
     </section>
 
