@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hoops Trade Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: scoreboard header, tabs, then a two-column workbench (trade slip | verdict) that stacks on phones */
+:root{
+  --bg:#EEF1F6; --panel:#FFFFFF; --ink:#141820; --muted:#5A6474; --line:#D8DEE8; --soft:#EEF1F6;
+  --accent:#E0561B; --accent-ink:#FFFFFF; --good:#178A4A; --bad:#C8352A; --warn:#A86E12; --scrim:rgba(13,17,23,.45);
+  --guard:#2B63D9; --fwd:#0F8C63; --ctr:#7B3FD1; --gold:#C98600;
+  --band:#0F1622; --band-2:#1B2638; --band-ink:#F4F6FA; --band-muted:#9AA6B8;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B0F16; --panel:#141A24; --ink:#E7EBF1; --muted:#8C96A6; --line:#253041; --soft:#1B2330;
+  --accent:#FF7A3D; --accent-ink:#1A0B03; --good:#45C97E; --bad:#FF6B5E; --warn:#E6B04A; --scrim:rgba(0,0,0,.6);
+  --guard:#6A9BFF; --fwd:#3FCB98; --ctr:#B48CFF; --gold:#F2B83A;
+  --band:#070A10; --band-2:#141C2B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0F16; --panel:#141A24; --ink:#E7EBF1; --muted:#8C96A6; --line:#253041; --soft:#1B2330;
+  --accent:#FF7A3D; --accent-ink:#1A0B03; --good:#45C97E; --bad:#FF6B5E; --warn:#E6B04A; --scrim:rgba(0,0,0,.6);
+  --guard:#6A9BFF; --fwd:#3FCB98; --ctr:#B48CFF; --gold:#F2B83A;
+  --band:#070A10; --band-2:#141C2B; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body.locked{overflow:hidden}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+h3{font-size:20px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.pmeta{font-size:12px;color:var(--muted)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Header band: a dark arena scoreboard with a center-court circle glowing behind the name */
+.band{margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:
+    radial-gradient(circle at 12% 120%, transparent 0 88px, color-mix(in srgb,var(--accent) 45%,transparent) 89px 91px, transparent 92px),
+    radial-gradient(ellipse at 10% 100%, color-mix(in srgb,var(--accent) 30%,transparent), transparent 55%),
+    linear-gradient(135deg,var(--band),var(--band-2));
+  color:var(--band-ink);margin-bottom:18px;border-bottom:3px solid var(--accent)}
+header{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:end;justify-content:space-between;padding-block:26px 22px;max-width:1180px;margin:0 auto}
+.brand h1{font-size:40px;line-height:.95;text-transform:uppercase;letter-spacing:.02em}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--band-muted);font-size:13px}
+.band input[type=text],.band select{background:color-mix(in srgb,var(--band-ink) 10%,transparent);border-color:color-mix(in srgb,var(--band-ink) 22%,transparent);color:var(--band-ink)}
+.band select option{color:#141820;background:#FFFFFF}
+.band input::placeholder{color:var(--band-muted)}
+form.connect{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input[type=text],input[type=search],select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+#username{width:220px;max-width:100%}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:5px 11px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+
+.status{font-size:13px;color:var(--muted);min-height:20px;margin-bottom:10px}
+.status.err{color:var(--bad)}
+
+.tabs{display:inline-flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:18px;max-width:100%;overflow-x:auto}
+.tabs button{background:none;border:0;padding:6px 18px;font-family:var(--display);font-size:18px;font-weight:600;color:var(--muted);border-radius:999px;cursor:pointer;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 6%,transparent)}
+.panel h3{display:flex;align-items:center;gap:8px}
+.panel h3::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+
+/* Team badges, position pills and value tiers */
+.tm{display:inline-block;min-width:34px;text-align:center;font:600 10px/1 var(--mono);letter-spacing:.04em;padding:3px 4px;border-radius:4px;background:var(--tc,#5A6474);color:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);vertical-align:1px}
+.pos{display:inline-block;font:600 10px/1 var(--body);letter-spacing:.04em;padding:3px 5px;border-radius:4px;margin-left:3px;vertical-align:1px}
+.pos.G{color:var(--guard);background:color-mix(in srgb,var(--guard) 14%,transparent)}
+.pos.F{color:var(--fwd);background:color-mix(in srgb,var(--fwd) 14%,transparent)}
+.pos.C{color:var(--ctr);background:color-mix(in srgb,var(--ctr) 14%,transparent)}
+.vb{display:inline-block;font:500 13px/1 var(--mono);padding:4px 7px;border-radius:6px;min-width:44px;text-align:center}
+.vb.elite{background:var(--gold);color:#1A1200}
+.vb.star{background:var(--accent);color:var(--accent-ink)}
+.vb.starter{background:color-mix(in srgb,var(--guard) 16%,transparent);color:var(--guard)}
+.vb.rotation{background:color-mix(in srgb,var(--fwd) 15%,transparent);color:var(--fwd)}
+.vb.bench{background:var(--soft);color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);align-items:center;margin-top:10px}
+.legend .vb{min-width:0;font-size:11px;padding:3px 6px}
+.pad{padding:14px}
+
+/* Trade slip */
+.bench{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.bench{grid-template-columns:minmax(0,1fr)}}
+.teams{display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:12px}
+.teams label{display:flex;flex-direction:column;gap:4px;flex:1 1 180px;min-width:0}
+.teams select{width:100%}
+.slip{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;position:relative}
+.slip-side{display:flex;flex-direction:column;gap:8px;min-width:0}
+.slip-head{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;color:#FFFFFF}
+.slip-head .label{color:inherit;font-size:12px}
+.slip-head .num{font-size:14px}
+.slip-side.give .slip-head{background:var(--bad)}
+.slip-side.get .slip-head{background:var(--good)}
+.pcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 6px 9px 10px}
+.slip-side.give .pcard{background:color-mix(in srgb,var(--bad) 6%,var(--panel));border-color:color-mix(in srgb,var(--bad) 25%,var(--line))}
+.slip-side.get .pcard{background:color-mix(in srgb,var(--good) 6%,var(--panel));border-color:color-mix(in srgb,var(--good) 25%,var(--line))}
+.pcard .pmeta{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px}
+.pcard .pname{font-weight:600;font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+.pcard .x{background:none;border:0;width:32px;height:32px;border-radius:6px;cursor:pointer;color:var(--muted);font-size:20px;line-height:1}
+.pcard .x:hover{background:var(--panel);color:var(--bad)}
+.pcard .val{font-family:var(--mono);font-size:13px}
+.add{border:1.5px dashed color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 4%,transparent);border-radius:8px;padding:12px 8px;cursor:pointer;color:var(--accent);font-weight:600;min-height:48px}
+.add:hover{border-color:var(--accent)}
+.swap-mark{position:absolute;left:50%;top:2px;transform:translateX(-50%);font-family:var(--display);color:var(--muted);font-size:16px}
+
+/* Multi-team trades */
+.slip-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.slip.multi{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.slip.multi .slip-head{background:var(--th)}
+.slip.multi .pcard{background:color-mix(in srgb,var(--th) 6%,var(--panel));border-color:color-mix(in srgb,var(--th) 25%,var(--line))}
+.mhead{display:flex;gap:6px;align-items:center}
+.mhead select{flex:1;min-width:0;font-size:13px;padding:6px 8px}
+.mhead .x{background:none;border:0;width:32px;height:32px;border-radius:6px;cursor:pointer;color:var(--muted);font-size:20px}
+.mto{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.mto select{flex:1;min-width:0;font-size:12px;padding:4px 6px}
+.gets{font-size:12px;color:var(--muted);padding:0 2px;line-height:1.5}
+.gets b{color:var(--ink);font-weight:500}
+.mteams{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:14px 0}
+.mteam{border-radius:10px;padding:10px 12px;--tone:var(--guard);background:color-mix(in srgb,var(--tone) 9%,var(--panel));border:1px solid color-mix(in srgb,var(--tone) 25%,transparent);min-width:0}
+.mteam.good{--tone:var(--good)} .mteam.bad{--tone:var(--bad)}
+.mteam .who{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mteam .res{font:700 10px/1 var(--body);letter-spacing:.08em;color:#FFFFFF;background:var(--tone);padding:3px 6px;border-radius:4px;display:inline-block;margin:6px 0}
+.mteam .ln{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.warn{background:color-mix(in srgb,var(--warn) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:8px;padding:8px 12px;font-size:13px;margin-top:10px}
+.mv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
+.mv:last-child{border-bottom:0}
+.mv .route{color:var(--muted);font-size:12px}
+
+/* Team needs */
+.needs{margin-top:16px}
+.needs-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:10px 0 18px}
+@media (max-width:560px){.needs-grid{grid-template-columns:minmax(0,1fr)}}
+.ncard{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
+.ncard .who{font-weight:600;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrow{display:grid;grid-template-columns:74px minmax(0,1fr) 76px;gap:8px;align-items:center;font-size:13px;padding:5px 0}
+.nrow .gname{display:flex;align-items:center;gap:6px;font-weight:500}
+.nrow .gname .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.dot.G{background:var(--guard)} .dot.F{background:var(--fwd)} .dot.C{background:var(--ctr)}
+.dbar{position:relative;height:10px;background:var(--panel);border-radius:5px}
+.dbar::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--muted);opacity:.5}
+.dbar i{position:absolute;top:0;bottom:0}
+.dbar i.up{left:50%;background:var(--good);border-radius:0 5px 5px 0}
+.dbar i.down{right:50%;background:var(--bad);border-radius:5px 0 0 5px}
+.nrow .nv{text-align:right;font-family:var(--mono);font-size:12px;line-height:1.2}
+.nrow .nv small{display:block;color:var(--muted);font-size:11px}
+.ntag{display:inline-block;font:700 9px/1 var(--body);letter-spacing:.08em;padding:3px 5px;border-radius:4px;color:#FFFFFF;background:var(--bad)}
+.ntag.str{background:var(--good)}
+.ncall{font-size:13px;margin-top:6px;color:var(--muted)}
+.ncall b{color:var(--ink)}
+.fill{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px;border-radius:10px;margin-top:8px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--guard) 8%,var(--panel)),var(--panel));border:1px solid color-mix(in srgb,var(--guard) 22%,var(--line))}
+.fill .tagline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-weight:500}
+.fill .k{font:700 10px/1 var(--body);letter-spacing:.08em;padding:3px 6px;border-radius:4px;color:#FFFFFF}
+.fill .k.get{background:var(--good)} .fill .k.give{background:var(--bad)}
+.fill .why{font-size:12px;color:var(--muted);margin-top:4px}
+.fits{display:inline-block;font:700 9px/1 var(--body);letter-spacing:.08em;padding:3px 5px;border-radius:4px;background:color-mix(in srgb,var(--guard) 16%,transparent);color:var(--guard);margin-left:6px;vertical-align:1px}
+
+.chip{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:1px 5px;border-radius:4px;vertical-align:1px;margin-left:4px}
+.chip.inj{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.chip.gtd{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.chip.hot{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+
+.verdict{position:sticky;top:12px;overflow:hidden}
+@media (max-width:900px){.verdict{position:static}}
+.verdict .body{padding:18px}
+.vbanner{padding:16px 18px 14px;--tone:var(--accent);background:linear-gradient(120deg,color-mix(in srgb,var(--tone) 22%,var(--panel)),color-mix(in srgb,var(--tone) 6%,var(--panel)));border-bottom:1px solid color-mix(in srgb,var(--tone) 30%,var(--line))}
+.vbanner.good{--tone:var(--good)} .vbanner.bad{--tone:var(--bad)} .vbanner.even{--tone:var(--guard)}
+.vhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.vtag{font-family:var(--display);font-size:36px;line-height:1.05;text-transform:uppercase;color:var(--tone)}
+.edge{font:600 13px/1 var(--mono);background:var(--tone);color:#FFFFFF;padding:4px 8px;border-radius:999px}
+.vsub{color:var(--ink);opacity:.85;margin:6px 0 0;max-width:60ch}
+.meter{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--soft);gap:2px}
+.meter i{display:block;height:100%}
+.meter .g{background:var(--bad)} .meter .r{background:var(--good)}
+.meter-l{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:5px}
+.meter-l .num{color:var(--ink);font-weight:500}
+.impact{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.impact > div{background:var(--soft);border-radius:10px;padding:10px 12px;border:1px solid transparent}
+.impact > div.pos-up{background:color-mix(in srgb,var(--good) 10%,var(--panel));border-color:color-mix(in srgb,var(--good) 25%,transparent)}
+.impact > div.pos-down{background:color-mix(in srgb,var(--bad) 9%,var(--panel));border-color:color-mix(in srgb,var(--bad) 22%,transparent)}
+.impact .big{font-family:var(--mono);font-size:22px}
+.up{color:var(--good)} .down{color:var(--bad)}
+.sec{margin-top:18px}
+.sec h3{margin-bottom:6px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+th.l,td.l{text-align:left}
+td.num{font-family:var(--mono)}
+tr.me td{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--soft)}
+tr.viewing td{box-shadow:inset 0 -2px 0 var(--accent)}
+.sidecap{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);padding-top:10px}
+.counter{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.counter:last-child{border-bottom:0}
+.counter .what{font-weight:500}
+.counter .why{font-size:12px;color:var(--muted)}
+.notes{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;max-width:90ch}
+
+/* Player picker: bottom sheet on phones, dialog on desktop */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--panel);width:100%;max-width:520px;max-height:86vh;display:flex;flex-direction:column;border-radius:16px 16px 0 0;
+  padding:14px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:14px;max-height:80vh}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.sheet input[type=search]{width:100%;margin-bottom:8px}
+.pos-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.pos-chips button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer}
+.pos-chips button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sheet-list{overflow-y:auto;margin:0 -6px;overscroll-behavior:contain}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto 36px;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:9px 6px;cursor:pointer}
+.prow:hover{background:var(--soft)}
+.prow .pname{font-weight:500;overflow-wrap:anywhere;line-height:1.3}
+.prow .pv{text-align:right;line-height:1.25}
+.prow .pv b{display:block;font-family:var(--mono);font-weight:500;font-size:14px}
+.prow .pv small{font-family:var(--mono);color:var(--muted);font-size:12px}
+.tick{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:16px;color:var(--muted)}
+.prow.on .tick{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.prow.on{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.prow.taken{opacity:.45}
+
+/* League + free agents */
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+@media (max-width:900px){.two{grid-template-columns:minmax(0,1fr)}}
+.tv-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tv-head select{flex:1 1 200px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.tile{background:var(--soft);border-radius:10px;padding:9px 10px;min-width:0;--tone:var(--accent);
+  background:color-mix(in srgb,var(--tone) 11%,var(--panel));border:1px solid color-mix(in srgb,var(--tone) 25%,transparent)}
+.tile.good{--tone:var(--good)} .tile.bad{--tone:var(--bad)}
+.tile .label{color:var(--tone)}
+.tile .big{font-family:var(--mono);font-size:18px}
+.tile .pmeta{overflow-wrap:anywhere}
+.rank{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font:600 12px/1 var(--mono);background:var(--soft);color:var(--muted)}
+.rank.r1{background:var(--gold);color:#1A1200} .rank.r2{background:#A9B4C2;color:#141820} .rank.r3{background:#C5824A;color:#1A0B03}
+.barcell{position:relative;min-width:92px}
+.barcell .bar{position:absolute;left:8px;top:50%;height:6px;margin-top:9px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--gold))}
+td.slot{font:600 11px/1 var(--mono);color:var(--muted)}
+.moves{display:flex;flex-direction:column}
+.moves{gap:10px}
+.move{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 12px;border-radius:10px;align-items:center;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--good) 9%,var(--panel)),var(--panel));border:1px solid color-mix(in srgb,var(--good) 22%,var(--line))}
+.move .what{font-weight:500;display:flex;flex-direction:column;gap:3px}
+.move .tagline{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.move .add-n,.move .drop-n{font:700 10px/1 var(--body);letter-spacing:.08em;padding:3px 6px;border-radius:4px;color:#FFFFFF}
+.move .add-n{background:var(--good)} .move .drop-n{background:var(--bad)}
+.move .gain{font-family:var(--mono);text-align:right;font-size:18px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.filters .pos-chips{margin:0}
+.fa{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.fa:last-child{border-bottom:0}
+.fa .pname{font-weight:600;overflow-wrap:anywhere}
+.fa .pv{text-align:right;line-height:1.25}
+.fa .pv b{display:block;font-family:var(--mono);font-weight:500}
+.fa .pv small{font-family:var(--mono);color:var(--muted);font-size:12px}
+.fa .line{grid-column:1/-1;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.fa .advice{grid-column:1/-1;font-size:12px}
+.fa .advice .up{font-weight:600}
+.fa .pmeta,.prow .pmeta{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px}
+.empty{color:var(--muted);padding:18px 4px}
+</style>
+</head>
+<body>
+<div class="band">
+  <header>
+    <div class="brand">
+      <h1>Hoops <span>Trade</span> Lab</h1>
+      <p>Trade grades, team scouting and waiver advice for Sleeper fantasy basketball</p>
+    </div>
+    <form class="connect" id="connect">
+      <input type="text" id="username" placeholder="Sleeper username or league ID" autocomplete="off" aria-label="Sleeper username or league ID">
+      <button class="btn" id="go" type="submit">Load</button>
+      <select id="leagueSel" aria-label="League" hidden></select>
+    </form>
+  </header>
+</div>
+<div class="wrap">
+  <div class="status" id="status">Enter your Sleeper username to load your NBA leagues.</div>
+
+  <div id="app" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="trade">Trade</button>
+      <button role="tab" aria-selected="false" data-tab="fa">Free agents</button>
+      <button role="tab" aria-selected="false" data-tab="league">League</button>
+    </div>
+
+    <section id="tab-trade">
+      <div class="bench">
+        <div>
+          <div class="teams">
+            <label><span class="label">Your team</span><select id="mySel"></select></label>
+            <label id="oppWrap"><span class="label">Trading with</span><select id="oppSel"></select></label>
+          </div>
+          <div class="slip" id="slip"></div>
+          <div class="slip-tools" id="slipTools"></div>
+          <div class="panel pad needs" id="needs"></div>
+        </div>
+        <div class="panel verdict" id="verdict"></div>
+      </div>
+    </section>
+
+    <section id="tab-fa" hidden>
+      <div class="two">
+        <div class="panel pad">
+          <h3>Suggested moves</h3>
+          <p class="pmeta">The best available players to add, and who on your roster you'd drop for them.</p>
+          <div class="moves" id="moves"></div>
+        </div>
+        <div class="panel pad">
+          <h3>Available players</h3>
+          <p class="pmeta">Everyone not on a roster in your league, including free agents and players on waivers.</p>
+          <div class="filters">
+            <div class="pos-chips" id="faPos"></div>
+            <select id="faSort" aria-label="Sort players">
+              <option value="fpg">Best overall</option>
+              <option value="cur">This season</option>
+              <option value="proj">Projected</option>
+              <option value="hot">Hot (beating last season)</option>
+              <option value="trend">Most added on Sleeper</option>
+            </select>
+          </div>
+          <div id="faList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-league" hidden>
+      <div class="two">
+        <div class="panel pad">
+          <h3>Power rankings</h3>
+          <p class="pmeta">Ranked by best starting lineup in fantasy points per game. Tap a team to scout it.</p>
+          <div class="tablewrap"><table id="powerTbl"></table></div>
+        </div>
+        <div class="panel pad">
+          <div class="tv-head">
+            <select id="viewSel" aria-label="Team to view"></select>
+            <button class="btn small" id="tradeWith" type="button">Trade with this team</button>
+          </div>
+          <div id="teamView"></div>
+        </div>
+      </div>
+    </section>
+
+    <p class="notes" id="notes"></p>
+  </div>
+</div>
+
+<div class="scrim" id="picker" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+    <div class="sheet-head">
+      <div><h3 id="pickTitle">Add players</h3><div class="pmeta" id="pickSub"></div></div>
+      <button class="btn small" id="pickDone" type="button">Done</button>
+    </div>
+    <input type="search" id="pickQ" placeholder="Search by name or NBA team" aria-label="Search players" autocomplete="off">
+    <div class="pos-chips" id="pickPos"></div>
+    <div class="sheet-list" id="pickList"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.sleeper.app/v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (n, d = 1) => (n == null || isNaN(n)) ? '–' : n.toFixed(d);
+const signed = (n, d = 1) => (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n).toFixed(d);
+const POSITIONS = ['All', 'PG', 'SG', 'SF', 'PF', 'C'];
+
+const S = { nbaState: null, players: null, league: null, rosters: [], owners: {}, model: {}, trending: {},
+  myRid: null, oppRid: null, viewRid: null, give: new Set(), get: new Set(), multi: null, userId: null,
+  pick: { side: 'give', q: '', pos: 'All' }, fa: { pos: 'All', sort: 'fpg' } };
+
+function status(msg, err = false) { const el = $('#status'); el.textContent = msg; el.classList.toggle('err', err); }
+function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+async function getJSON(path) {
+  const r = await fetch(path.startsWith('http') ? path : API + path);
+  if (!r.ok) throw new Error(`Sleeper returned ${r.status} for ${path}`);
+  return r.json();
+}
+
+/* ---------- Loading ---------- */
+$('#connect').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#username').value.trim();
+  if (!q) return;
+  $('#go').disabled = true;
+  try {
+    S.nbaState = S.nbaState || await getJSON('/state/nba');
+    if (/^\d{10,}$/.test(q)) { $('#leagueSel').hidden = true; await loadLeague(q); }
+    else await loadUser(q);
+    store('htl.user', q);
+  } catch (err) { status(err.message, true); }
+  $('#go').disabled = false;
+});
+
+async function loadUser(name) {
+  status('Finding ' + name + '…');
+  const user = await getJSON('/user/' + encodeURIComponent(name));
+  if (!user) throw new Error(`No Sleeper user named "${name}". Check the spelling, or paste a league ID instead.`);
+  S.userId = user.user_id;
+  let season = S.nbaState.league_season;
+  let leagues = await getJSON(`/user/${user.user_id}/leagues/nba/${season}`);
+  if (!leagues.length) { season = S.nbaState.previous_season; leagues = await getJSON(`/user/${user.user_id}/leagues/nba/${season}`); }
+  if (!leagues.length) throw new Error(`${user.display_name} has no NBA leagues for ${S.nbaState.league_season}.`);
+  const sel = $('#leagueSel');
+  sel.innerHTML = leagues.map(l => `<option value="${esc(l.league_id)}">${esc(l.name)} (${esc(l.season)})</option>`).join('');
+  sel.hidden = leagues.length < 2;
+  const remembered = recall('htl.league');
+  if (remembered && leagues.some(l => l.league_id === remembered)) sel.value = remembered;
+  await loadLeague(sel.value);
+}
+$('#leagueSel').addEventListener('change', e => loadLeague(e.target.value).catch(err => status(err.message, true)));
+
+async function loadLeague(id) {
+  status('Loading league, rosters and stats…');
+  const league = await getJSON('/league/' + id);
+  if (!league || league.sport !== 'nba') throw new Error('That league ID is not a Sleeper NBA league.');
+  const season = Number(league.season);
+  const [rosters, users, players, cur, prev, proj, trending] = await Promise.all([
+    getJSON(`/league/${id}/rosters`), getJSON(`/league/${id}/users`),
+    S.players ? S.players : getJSON('/players/nba'),
+    getJSON(`/stats/nba/regular/${season}`), getJSON(`/stats/nba/regular/${season - 1}`),
+    getJSON(`/projections/nba/regular/${season}`).catch(() => ({})),
+    getJSON('/players/nba/trending/add?lookback_hours=48&limit=100').catch(() => [])
+  ]);
+  S.players = players; S.league = league; S.rosters = rosters.filter(r => r.players && r.players.length);
+  S.trending = {};
+  trending.forEach(t => S.trending[t.player_id] = t.count);
+  S.owners = {};
+  users.forEach(u => S.owners[u.user_id] = u.metadata?.team_name || u.display_name);
+  buildModel(cur, prev, proj);
+  store('htl.league', id);
+  S.give.clear(); S.get.clear(); S.multi = null;
+  const mine = S.rosters.find(r => r.owner_id === S.userId || (r.co_owners || []).includes(S.userId));
+  S.myRid = (mine || S.rosters[0]).roster_id;
+  S.oppRid = S.rosters.find(r => r.roster_id !== S.myRid).roster_id;
+  S.viewRid = S.myRid;
+  fillTeamSelects();
+  $('#app').hidden = false;
+  const fmtName = ['Redraft', 'Keeper', 'Dynasty'][league.settings?.type ?? 0];
+  status(`${league.name} · ${S.rosters.length} teams · ${fmtName} · ${S.model.scoringNote}`);
+  renderAll();
+}
+
+/* ---------- Player model ---------- */
+// Points per game from a stat line using the league's own scoring weights.
+function fantasyPoints(st, sc) {
+  if (!st) return 0;
+  let t = 0;
+  for (const k in sc) if (st[k] != null) t += sc[k] * st[k];
+  return t;
+}
+function injuryFactor(s) {
+  if (!s) return 1;
+  s = s.toLowerCase();
+  if (s.includes('ofs') || s.includes('season')) return 0.25;
+  if (s === 'out' || s === 'ir') return 0.8;
+  if (s.includes('sus')) return 0.85;
+  if (s.includes('doubt')) return 0.9;
+  return 0.97; // GTD, questionable, day-to-day
+}
+function ageFactor(age, type) {
+  if (!type || !age) return 1;
+  const full = age <= 22 ? 1.3 : age <= 24 ? 1.18 : age <= 27 ? 1.06 : age <= 29 ? 1 : age <= 31 ? 0.86 : age <= 33 ? 0.72 : 0.58;
+  return type === 2 ? full : 1 + (full - 1) / 2; // keeper leagues get half the age effect
+}
+
+function buildModel(cur, prev, proj) {
+  const L = S.league, type = L.settings?.type ?? 0;
+  let sc = L.scoring_settings || {};
+  const usable = ['pts', 'reb', 'ast'].some(k => sc[k]);
+  if (!usable) sc = { pts_std: 1 };
+  const rostered = new Set(S.rosters.flatMap(r => r.players || []));
+  const ids = new Set([...Object.keys(cur), ...Object.keys(prev), ...Object.keys(proj), ...rostered]);
+  const M = {};
+  for (const id of ids) {
+    const p = S.players[id];
+    if (!p || (!p.team && !rostered.has(id))) continue;
+    const c = cur[id], l = prev[id], pr = proj[id];
+    const cg = c?.gp || 0, lg = l?.gp || 0;
+    const curPG = cg ? fantasyPoints(c, sc) / cg : null;
+    const lastPG = lg ? fantasyPoints(l, sc) / lg : null;
+    const projPG = pr && (pr.pts || pr.pts_std) ? fantasyPoints(pr, sc) : null;
+    // Blend: this season earns weight as games accumulate; last season is trusted by sample size.
+    const wc = cg ? cg / (cg + 12) : 0;
+    const wl = lastPG != null ? 0.65 * Math.min(1, lg / 30) : 0;
+    const wp = projPG != null ? 0.35 : 0;
+    const base = wl + wp;
+    let fpg;
+    if (base) fpg = wc * (curPG ?? 0) + (1 - wc) * (wl * (lastPG ?? 0) + wp * (projPG ?? 0)) / base;
+    else fpg = curPG ?? 0;
+    const durability = lg ? 0.82 + 0.18 * Math.min(1, lg / 65) : 0.95;
+    const adj = fpg * durability * injuryFactor(p.injury_status);
+    const adp = type === 2 ? pr?.adp_dynasty : pr?.adp_std;
+    M[id] = { id, name: p.full_name || `${p.first_name} ${p.last_name}`, team: p.team || 'FA',
+      pos: (p.fantasy_positions && p.fantasy_positions.length ? p.fantasy_positions : [p.position]).filter(Boolean),
+      age: p.age, inj: p.injury_status, active: p.active !== false, rostered: rostered.has(id),
+      cg, lg, curPG, lastPG, projPG, fpg, adj, adp: adp && adp < 400 ? adp : null, ageF: ageFactor(p.age, type) };
+  }
+  // Replacement level = the best player still left after every team fills its starters and a short bench.
+  const starters = (L.roster_positions || []).filter(s => !['BN', 'IR', 'TAXI'].includes(s));
+  const teams = S.rosters.length || L.total_rosters || 12;
+  const pool = Object.values(M).sort((a, b) => b.adj - a.adj);
+  const replIdx = Math.min(pool.length - 1, teams * starters.length + Math.round(teams * 1.5));
+  const repl = pool[replIdx]?.adj || 0;
+  const top = Math.max(1e-6, pool[0].adj - repl);
+  pool.forEach(m => m.prod = 100 * Math.pow(Math.max(0, m.adj - repl) / top, 1.35));
+  // Market check from Sleeper ADP: give each player the production value of the rank drafters take him at.
+  const byProd = pool.map(m => m.prod);
+  const marketW = type === 2 ? 0.35 : 0.25 * (1 - Math.min(1, (pool[0].cg || 0) / 30));
+  pool.forEach(m => {
+    const mkt = m.adp ? byProd[Math.min(byProd.length - 1, Math.round(m.adp) - 1)] : null;
+    const blended = mkt == null ? m.prod : (1 - marketW) * m.prod + marketW * mkt;
+    m.value = blended * m.ageF;
+  });
+  S.model = { M, repl, starters, teams, type,
+    benchSize: (L.roster_positions || []).filter(s => !['IR', 'TAXI'].includes(s)).length,
+    scoringNote: usable ? 'league scoring' : 'Sleeper default scoring' };
+}
+
+/* ---------- Team math ---------- */
+const SLOTS = { PG: ['PG'], SG: ['SG'], SF: ['SF'], PF: ['PF'], C: ['C'], G: ['PG', 'SG'], F: ['SF', 'PF'] };
+const P = id => S.model.M[id] || { id, name: S.players[id]?.full_name || id, pos: [], fpg: 0, adj: 0, value: 0, team: '' };
+const rosterRec = rid => S.rosters.find(r => r.roster_id == rid);
+const rosterOf = rid => { const r = rosterRec(rid); return (r?.players || []).filter(id => !(r.taxi || []).includes(id)); };
+const reserveOf = rid => rosterRec(rid)?.reserve || [];
+
+function lineup(ids) {
+  const open = S.model.starters.map((s, i) => ({ s, i, elig: SLOTS[s] || null, pid: null }));
+  const list = ids.map(P).filter(p => p.adj > 0).sort((a, b) => b.adj - a.adj);
+  for (const p of list) {
+    const fits = open.filter(o => !o.pid && (!o.elig || o.elig.some(x => p.pos.includes(x))));
+    if (!fits.length) continue;
+    fits.sort((a, b) => (a.elig ? a.elig.length : 99) - (b.elig ? b.elig.length : 99));
+    fits[0].pid = p.id;
+  }
+  const total = open.reduce((t, o) => t + (o.pid ? P(o.pid).adj : 0), 0);
+  return { total, slots: open };
+}
+// Value of the players who'd actually stay on the roster; reserve (IR) players don't use a bench spot.
+function teamValue(ids, reserve = []) {
+  const act = ids.filter(id => !reserve.includes(id)), res = ids.filter(id => reserve.includes(id));
+  const kept = act.map(id => P(id).value).sort((a, b) => b - a).slice(0, S.model.benchSize);
+  return kept.concat(res.map(id => P(id).value)).reduce((a, b) => a + b, 0);
+}
+function evaluate(A, B, oppRid = S.oppRid) {
+  const myIds = rosterOf(S.myRid), thIds = rosterOf(oppRid);
+  const myAfter = myIds.filter(x => !A.includes(x)).concat(B);
+  const thAfter = thIds.filter(x => !B.includes(x)).concat(A);
+  const myRes = reserveOf(S.myRid), thRes = reserveOf(oppRid);
+  const giveV = A.reduce((t, id) => t + P(id).value, 0), getV = B.reduce((t, id) => t + P(id).value, 0);
+  const myDV = teamValue(myAfter, myRes) - teamValue(myIds, myRes), thDV = teamValue(thAfter, thRes) - teamValue(thIds, thRes);
+  const myL0 = lineup(myIds).total, thL0 = lineup(thIds).total;
+  const myL1 = lineup(myAfter).total, thL1 = lineup(thAfter).total;
+  const size = Math.max(giveV, getV, 1);
+  return { giveV, getV, myDV, thDV, edge: (myDV - thDV) / size, myL0, myL1, thL0, thL1, myDL: myL1 - myL0, thDL: thL1 - thL0 };
+}
+const moveScore = (dV, dL) => dV + (S.model.type === 2 ? 1 : 3) * dL;
+
+// Position groups: starters' fp/g split by each player's main position.
+const GROUP = { PG: 'Guards', SG: 'Guards', SF: 'Forwards', PF: 'Forwards', C: 'Centers' };
+const GROUPS = ['Guards', 'Forwards', 'Centers'];
+const GROUP_POS = { Guards: 'G', Forwards: 'F', Centers: 'C' };
+const groupOf = id => GROUP[P(id).pos[0]];
+function groupStrength(ids, lu = lineup(ids)) {
+  const g = { Guards: 0, Forwards: 0, Centers: 0 };
+  lu.slots.forEach(s => { if (s.pid) { const k = groupOf(s.pid); if (k) g[k] += P(s.pid).adj; } });
+  return g;
+}
+function leagueGroupAvg() {
+  const avg = { Guards: 0, Forwards: 0, Centers: 0 };
+  S.rosters.forEach(r => { const g = groupStrength(rosterOf(r.roster_id)); GROUPS.forEach(k => avg[k] += g[k] / S.rosters.length); });
+  return avg;
+}
+// Each group compared with the league average; the most negative one is the team's need.
+function needsOf(ids, avg) {
+  const g = groupStrength(ids);
+  const diff = {};
+  GROUPS.forEach(k => diff[k] = g[k] - avg[k]);
+  const need = [...GROUPS].sort((a, b) => diff[a] - diff[b])[0];
+  return { g, diff, need };
+}
+
+// Players on their roster in your weakest group, each paired with a package of yours they'd plausibly accept.
+function needTrades(myNeed, theirNeed, rid = S.oppRid, perTeam = 6) {
+  const mine = rosterOf(S.myRid), theirs = rosterOf(rid);
+  const myG0 = groupStrength(mine)[myNeed];
+  const targets = theirs.filter(id => groupOf(id) === myNeed && P(id).value > 3)
+    .sort((a, b) => P(b).value - P(a).value).slice(0, perTeam);
+  const pool = mine.filter(id => groupOf(id) !== myNeed);
+  const out = [];
+  for (const t of targets) {
+    let best = null;
+    for (const pkg of combos(pool, [])) {
+      const ev = evaluate(pkg, [t], rid);
+      if (ev.edge > 0.12 || ev.edge < -0.12 || ev.myDL <= 0) continue;
+      const helpsThem = pkg.some(id => groupOf(id) === theirNeed);
+      const s = score(ev) + (helpsThem ? 2 : 0);
+      if (!best || s > best.s) best = { pkg, t, ev, s, helpsThem, rid };
+    }
+    if (best) {
+      const after = mine.filter(x => !best.pkg.includes(x)).concat(t);
+      best.needGain = groupStrength(after)[myNeed] - myG0;
+      out.push(best);
+    }
+  }
+  return out.sort((a, b) => b.s - a.s).slice(0, 4);
+}
+
+/* ---------- Shared bits ---------- */
+function teamName(rid) { return S.owners[rosterRec(rid)?.owner_id] || `Team ${rid}`; }
+function injChip(s) {
+  if (!s) return '';
+  const hard = /out|ofs|ir|sus/i.test(s);
+  return `<span class="chip ${hard ? 'inj' : 'gtd'}">${esc(s.toUpperCase())}</span>`;
+}
+const TEAM_COLORS = { ATL: '#E03A3E', BOS: '#007A33', BKN: '#2A2A2A', BRK: '#2A2A2A', CHA: '#1D1160', CHO: '#1D1160', CHI: '#CE1141',
+  CLE: '#860038', DAL: '#00538C', DEN: '#0E2240', DET: '#C8102E', GS: '#1D428A', GSW: '#1D428A', HOU: '#CE1141', IND: '#002D62',
+  LAC: '#C8102E', LAL: '#552583', MEM: '#5D76A9', MIA: '#98002E', MIL: '#00471B', MIN: '#236192', NO: '#0C2340', NOP: '#0C2340',
+  NY: '#006BB6', NYK: '#006BB6', OKC: '#007AC1', ORL: '#0077C0', PHI: '#006BB6', PHX: '#1D1160', PHO: '#1D1160', POR: '#E03A3E',
+  SA: '#5F6468', SAS: '#5F6468', SAC: '#5A2D81', TOR: '#CE1141', UTA: '#3E2680', UTAH: '#3E2680', WAS: '#002B5C' };
+const teamBadge = t => `<span class="tm" style="--tc:${TEAM_COLORS[t] || '#5A6474'}">${esc(t || 'FA')}</span>`;
+const POS_GROUP = { PG: 'G', SG: 'G', G: 'G', SF: 'F', PF: 'F', F: 'F', C: 'C' };
+const posPills = pos => pos.map(x => `<span class="pos ${POS_GROUP[x] || 'G'}">${esc(x)}</span>`).join('');
+const tier = v => v >= 70 ? 'elite' : v >= 40 ? 'star' : v >= 20 ? 'starter' : v >= 7 ? 'rotation' : 'bench';
+const valueBadge = v => `<span class="vb ${tier(v)}" title="Trade value">${fmt(v)}</span>`;
+const metaLine = p => `${teamBadge(p.team)}${posPills(p.pos)}${p.age ? `<span>· ${p.age}</span>` : ''}`;
+const LEGEND = `<div class="legend"><span>Value:</span><span class="vb elite">70+ elite</span><span class="vb star">40+ star</span><span class="vb starter">20+ starter</span><span class="vb rotation">7+ rotation</span><span class="vb bench">bench</span></div>`;
+function posChips(el, current, attr) {
+  el.innerHTML = POSITIONS.map(p => `<button type="button" ${attr}="${p}" aria-pressed="${p === current}">${p}</button>`).join('');
+}
+const matchesPos = (p, pos) => pos === 'All' || p.pos.includes(pos);
+
+function fillTeamSelects() {
+  const opt = (r, sel) => `<option value="${r.roster_id}" ${r.roster_id == sel ? 'selected' : ''}>${esc(teamName(r.roster_id))}</option>`;
+  $('#mySel').innerHTML = S.rosters.map(r => opt(r, S.myRid)).join('');
+  $('#oppSel').innerHTML = S.rosters.filter(r => r.roster_id != S.myRid).map(r => opt(r, S.oppRid)).join('');
+  $('#viewSel').innerHTML = S.rosters.map(r => `<option value="${r.roster_id}" ${r.roster_id == S.viewRid ? 'selected' : ''}>${esc(teamName(r.roster_id))}${r.roster_id == S.myRid ? ' (you)' : ''}</option>`).join('');
+}
+$('#mySel').addEventListener('change', e => {
+  S.myRid = Number(e.target.value); S.give.clear(); S.get.clear(); S.multi = null;
+  if (S.oppRid == S.myRid) S.oppRid = S.rosters.find(r => r.roster_id != S.myRid).roster_id;
+  fillTeamSelects(); renderAll();
+});
+$('#oppSel').addEventListener('change', e => { S.oppRid = Number(e.target.value); S.get.clear(); renderTrade(); });
+
+function showTab(name) {
+  document.querySelectorAll('[data-tab]').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
+  ['trade', 'fa', 'league'].forEach(n => $('#tab-' + n).hidden = n !== name);
+}
+
+function renderAll() {
+  renderTrade();
+  renderFA();
+  renderLeague();
+  const typeNote = S.model.type === 2 ? ' Dynasty mode adds an age curve: players 24 and under go up, players 30 and over go down.' : '';
+  $('#notes').textContent = `How values work: each player's fantasy points per game (fp/g) blends this season, last season and Sleeper's projection, weighted by games played and scored with your league's settings. It's then adjusted for injuries and durability, measured against a replacement-level player, and scaled so the best player in the pool is 100. Stars count for more than the same total spread across role players.${typeNote}`;
+}
+
+/* ---------- Trade slip ---------- */
+function renderTrade() {
+  const multi = !!S.multi;
+  $('#oppWrap').hidden = multi;
+  $('#needs').hidden = multi;
+  $('#slip').classList.toggle('multi', multi);
+  const anyBtn = '<button class="btn small" type="button" data-pick="all">+ Add a player from any team</button>';
+  $('#slipTools').innerHTML = multi
+    ? `${anyBtn}${S.multi.teams.length < S.rosters.length ? `<button class="btn ghost small" type="button" data-madd="1">+ Add a team</button>
+         <button class="btn ghost small" type="button" data-madd="all">Add the whole league</button>` : ''}
+       <button class="btn ghost small" type="button" data-two="1">Back to a 2-team trade</button>`
+    : anyBtn + (S.rosters.length > 2 ? '<button class="btn ghost small" type="button" data-multi="1">+ Add a team</button>' : '');
+  if (multi) return renderMulti();
+  const side = (key, label) => {
+    const set = key === 'give' ? S.give : S.get;
+    const ids = [...set].sort((a, b) => P(b).value - P(a).value);
+    const total = ids.reduce((t, id) => t + P(id).value, 0);
+    return `<div class="slip-side ${key}">
+      <div class="slip-head"><span class="label">${label}</span><span class="num">${ids.length ? fmt(total) : ''}</span></div>
+      ${ids.map(id => { const p = P(id); return `<div class="pcard">
+        <div style="min-width:0"><div class="pname">${esc(p.name)}${injChip(p.inj)}</div>
+        <div class="pmeta">${teamBadge(p.team)}${posPills(p.pos)} ${valueBadge(p.value)}</div></div>
+        <button class="x" type="button" data-remove="${key}" data-id="${esc(id)}" aria-label="Remove ${esc(p.name)}">×</button></div>`; }).join('')}
+      <button class="add" type="button" data-pick="${key}">+ Add player</button></div>`;
+  };
+  $('#slip').innerHTML = side('give', 'You give') + side('get', 'You get');
+  renderNeeds();
+  renderVerdict();
+}
+
+/* ---------- Multi-team trades ---------- */
+// moves maps each player being traded to the roster that receives him; the sender is whoever rosters him now.
+const TEAM_TONES = ['var(--accent)', 'var(--guard)', 'var(--fwd)', 'var(--ctr)', 'var(--gold)', 'var(--bad)',
+  'color-mix(in srgb,var(--guard) 60%,var(--fwd))', 'color-mix(in srgb,var(--ctr) 60%,var(--bad))', 'color-mix(in srgb,var(--gold) 55%,var(--fwd))',
+  'color-mix(in srgb,var(--accent) 55%,var(--ctr))', 'color-mix(in srgb,var(--guard) 55%,var(--ink))', 'color-mix(in srgb,var(--fwd) 55%,var(--ink))'];
+const toneFor = i => TEAM_TONES[i % TEAM_TONES.length];
+const ownerOf = id => S.rosters.find(r => (r.players || []).includes(id))?.roster_id;
+function ensureMulti() {
+  if (S.multi) return;
+  const moves = {};
+  S.give.forEach(id => moves[id] = S.oppRid);
+  S.get.forEach(id => moves[id] = S.myRid);
+  S.multi = { teams: [S.myRid, S.oppRid], moves };
+}
+function enterMulti() {
+  ensureMulti();
+  const extra = S.rosters.find(r => !S.multi.teams.includes(r.roster_id));
+  if (extra) S.multi.teams.push(extra.roster_id);
+  renderTrade();
+}
+// Teams sending or receiving at least one player (you always count).
+function involvedTeams() {
+  const set = new Set([S.myRid]);
+  for (const [id, to] of Object.entries(S.multi.moves)) { set.add(ownerOf(id)); set.add(to); }
+  return set;
+}
+// Drop teams that were in the deal before a change and no longer have anyone moving; empty teams you added on purpose stay.
+function pruneMulti(prev) {
+  const now = involvedTeams();
+  S.multi.teams = S.multi.teams.filter(t => t == S.myRid || !prev.has(t) || now.has(t));
+  afterTeamRemoval();
+}
+function exitMulti() {
+  S.give.clear(); S.get.clear();
+  const partner = S.multi.teams[1];
+  for (const [id, to] of Object.entries(S.multi.moves)) {
+    const from = ownerOf(id);
+    if (from == S.myRid && to == partner) S.give.add(id);
+    if (from == partner && to == S.myRid) S.get.add(id);
+  }
+  S.oppRid = partner; S.multi = null;
+  fillTeamSelects(); renderTrade();
+}
+// Send a newly picked player to whichever other team is receiving the least so far.
+function defaultTo(from) {
+  const m = S.multi, count = t => Object.values(m.moves).filter(x => x == t).length;
+  return m.teams.filter(t => t != from).sort((a, b) => count(a) - count(b))[0];
+}
+// Two teams left means it's an ordinary trade again; with fewer, start the 2-team slip fresh.
+function afterTeamRemoval() {
+  if (S.multi.teams.length >= 3) return renderTrade();
+  if (S.multi.teams.length === 1) S.multi.teams.push(S.rosters.find(r => r.roster_id != S.myRid).roster_id);
+  exitMulti();
+}
+function dropTeamMoves(rid) {
+  for (const id of Object.keys(S.multi.moves)) if (ownerOf(id) == rid || S.multi.moves[id] == rid) delete S.multi.moves[id];
+}
+function evaluateMulti(moves = S.multi.moves) {
+  const res = {}, ids = Object.keys(moves);
+  for (const t of S.multi.teams) {
+    const before = rosterOf(t), rv = reserveOf(t);
+    const out = ids.filter(id => ownerOf(id) == t), inn = ids.filter(id => moves[id] == t);
+    const after = before.filter(x => !out.includes(x)).concat(inn);
+    const l0 = lineup(before).total, l1 = lineup(after).total;
+    res[t] = { t, out, inn, outV: out.reduce((s, id) => s + P(id).value, 0), inV: inn.reduce((s, id) => s + P(id).value, 0),
+      dV: teamValue(after, rv) - teamValue(before, rv), l0, l1, dL: l1 - l0 };
+  }
+  const size = Math.max(1, ...S.multi.teams.map(t => Math.max(res[t].outV, res[t].inV)));
+  S.multi.teams.forEach(t => res[t].edge = res[t].dV / size);
+  return res;
+}
+const multiLabel = e => e > 0.12 ? ['good', 'WINS'] : e > 0.05 ? ['good', 'SLIGHT WIN'] : e >= -0.05 ? ['even', 'FAIR'] : e >= -0.12 ? ['bad', 'SLIGHT LOSS'] : ['bad', 'LOSES'];
+// One extra player from the biggest winner to the biggest loser that evens things out most.
+function balanceMulti(res) {
+  const ts = S.multi.teams, sorted = [...ts].sort((a, b) => res[b].edge - res[a].edge);
+  const W = sorted[0], L = sorted[sorted.length - 1];
+  const spread0 = res[W].edge - res[L].edge;
+  if (spread0 < 0.15) return null;
+  let best = null;
+  for (const id of rosterOf(W)) {
+    if (S.multi.moves[id]) continue;
+    const r = evaluateMulti({ ...S.multi.moves, [id]: L });
+    const vals = ts.map(t => r[t].edge), spread = Math.max(...vals) - Math.min(...vals);
+    if (spread < spread0 - 0.03 && (!best || spread < best.spread)) best = { id, W, L, spread };
+  }
+  return best;
+}
+
+function renderMulti() {
+  const m = S.multi, res = evaluateMulti();
+  $('#slip').innerHTML = m.teams.map((t, i) => {
+    const r = res[t];
+    const head = i === 0
+      ? `<div class="slip-head"><span class="label">You send</span><span class="num">${r.out.length ? fmt(r.outV) : ''}</span></div>`
+      : `<div class="mhead"><select data-mteam="${i}" aria-label="Team ${i + 1}">${S.rosters.filter(x => x.roster_id == t || !m.teams.includes(x.roster_id))
+          .map(x => `<option value="${x.roster_id}" ${x.roster_id == t ? 'selected' : ''}>${esc(teamName(x.roster_id))}</option>`).join('')}</select>
+          <button class="x" type="button" data-mremove="${i}" aria-label="Remove this team">×</button></div>
+        <div class="slip-head"><span class="label">Sends</span><span class="num">${r.out.length ? fmt(r.outV) : ''}</span></div>`;
+    const cards = r.out.sort((a, b) => P(b).value - P(a).value).map(id => { const p = P(id); return `<div class="pcard">
+      <div style="min-width:0"><div class="pname">${esc(p.name)}${injChip(p.inj)}</div>
+        <div class="pmeta">${teamBadge(p.team)}${posPills(p.pos)} ${valueBadge(p.value)}</div>
+        <label class="mto">to <select data-mto="${esc(id)}">
+          <optgroup label="In this trade">${m.teams.filter(x => x != t).map(x => `<option value="${x}" ${m.moves[id] == x ? 'selected' : ''}>${esc(teamName(x))}</option>`).join('')}</optgroup>
+          ${S.rosters.length > m.teams.length ? `<optgroup label="Add another team">${S.rosters.filter(r => !m.teams.includes(r.roster_id)).map(r => `<option value="${r.roster_id}">${esc(teamName(r.roster_id))}</option>`).join('')}</optgroup>` : ''}
+        </select></label></div>
+      <button class="x" type="button" data-mdel="${esc(id)}" aria-label="Remove ${esc(p.name)}">×</button></div>`; }).join('');
+    const gets = r.inn.length ? `Gets <b>${r.inn.map(id => esc(P(id).name)).join(', ')}</b> · ${fmt(r.inV)}` : 'Gets nobody yet';
+    return `<div class="slip-side" style="--th:${toneFor(i)}">${i === 0 ? `<div class="pname" style="padding:0 2px">${esc(teamName(t))} (you)</div>` : ''}
+      ${head}${cards}<button class="add" type="button" data-pick="m:${t}">+ Add player</button><div class="gets">${gets}</div></div>`;
+  }).join('');
+  renderMultiVerdict(res);
+}
+
+function renderMultiVerdict(res) {
+  const m = S.multi, box = $('#verdict'), ids = Object.keys(m.moves);
+  if (!ids.length) {
+    box.innerHTML = `<div class="vbanner"><div class="vtag">Build a ${m.teams.length}-team trade</div>
+      <p class="vsub">Add the players each team sends, then use the "to" menu under each player to pick who receives them. Every team needs to send or receive at least one player.</p></div><div class="body">${LEGEND}</div>`;
+    return;
+  }
+  const idle = m.teams.filter(t => !res[t].out.length && !res[t].inn.length);
+  const me = res[S.myRid], [myTone] = multiLabel(me.edge);
+  const ranked = [...m.teams].sort((a, b) => res[b].edge - res[a].edge);
+  const allFair = m.teams.every(t => Math.abs(res[t].edge) <= 0.05);
+  const tag = allFair ? 'Fair for everyone' : me.edge > 0.05 ? 'You come out ahead' : me.edge < -0.05 ? 'You come out behind' : 'Fair for you';
+  const line = allFair ? 'Every team gets back about what it sends.'
+    : `Biggest winner: ${esc(teamName(ranked[0]))} (${signed(res[ranked[0]].dV)} value). Biggest loser: ${esc(teamName(ranked[ranked.length - 1]))} (${signed(res[ranked[ranked.length - 1]].dV)}).`;
+  const bal = balanceMulti(res);
+  box.innerHTML = `
+    <div class="vbanner ${allFair ? 'even' : myTone}">
+      <div class="vhead"><span class="label">${m.teams.length}-team verdict</span><span class="edge">${signed(Math.max(-99, Math.min(99, me.edge * 100)), 0)}% for you</span></div>
+      <div class="vtag">${tag}</div>
+      <p class="vsub">${line}</p>
+    </div>
+    <div class="body">
+      ${idle.length ? `<div class="warn">${idle.length > 3 ? `${idle.length} teams aren't sending or receiving anyone yet: ${idle.map(t => esc(teamName(t))).join(', ')}.` : `${idle.map(t => esc(teamName(t))).join(', ')} ${idle.length > 1 ? "aren't" : "isn't"} sending or receiving anyone yet.`} Sleeper needs every team in a trade to be involved, so add players or remove those teams.
+        <div style="margin-top:6px"><button class="btn ghost small" type="button" data-mprune="1">Remove teams with no players</button></div></div>` : ''}
+      <div class="mteams">${m.teams.map(t => { const r = res[t], [tone, label] = multiLabel(r.edge); return `
+        <div class="mteam ${tone}"><div class="who">${esc(teamName(t))}${t == S.myRid ? ' (you)' : ''}</div>
+          <span class="res">${label}</span>
+          <div class="ln">Value ${signed(r.dV)}</div>
+          <div class="ln ${r.dL >= 0 ? 'up' : 'down'}">Lineup ${signed(r.dL)} fp/g</div>
+          <div class="ln">${fmt(r.l0)} → ${fmt(r.l1)}</div></div>`; }).join('')}</div>
+      ${bal ? `<div class="fill"><div style="min-width:0"><div class="tagline"><span class="k get">BALANCE IT</span>${esc(teamName(bal.W))} also sends ${esc(P(bal.id).name)} ${teamBadge(P(bal.id).team)} ${valueBadge(P(bal.id).value)} to ${esc(teamName(bal.L))}</div>
+        <div class="why">Brings every team closer to even.</div></div>
+        <button class="btn small" type="button" data-mbalance="${esc(bal.id)}|${bal.L}">Add it</button></div>` : ''}
+      <div class="sec"><h3>Who goes where</h3>
+        ${ids.sort((a, b) => P(b).value - P(a).value).map(id => { const p = P(id); return `<div class="mv"><div style="min-width:0">
+          <div>${esc(p.name)}${injChip(p.inj)} ${teamBadge(p.team)}${posPills(p.pos)}</div>
+          <div class="route">${esc(teamName(ownerOf(id)))} → <b>${esc(teamName(m.moves[id]))}</b> · ${fmt(p.fpg)} fp/g</div></div>${valueBadge(p.value)}</div>`; }).join('')}
+      </div>
+    </div>`;
+}
+
+function renderNeeds() {
+  const avg = leagueGroupAvg();
+  const mine = rosterOf(S.myRid), theirs = rosterOf(S.oppRid);
+  const A = [...S.give], B = [...S.get], traded = A.length && B.length;
+  const me = needsOf(mine, avg), them = needsOf(theirs, avg);
+  const meAfter = traded ? needsOf(mine.filter(x => !A.includes(x)).concat(B), avg) : null;
+  const themAfter = traded ? needsOf(theirs.filter(x => !B.includes(x)).concat(A), avg) : null;
+  S.need = { mine: me.need, theirs: them.need };
+  const scale = Math.max(8, ...GROUPS.flatMap(k => [me, them, meAfter, themAfter].filter(Boolean).map(n => Math.abs(n.diff[k]))));
+  const card = (name, n, after) => {
+    const now = after || n;
+    const strong = [...GROUPS].sort((a, b) => now.diff[b] - now.diff[a])[0];
+    return `<div class="ncard"><div class="who">${esc(name)}</div>
+      ${GROUPS.map(k => { const d = (after || n).diff[k], w = Math.min(50, Math.abs(d) / scale * 50);
+        return `<div class="nrow">
+          <span class="gname"><span class="dot ${GROUP_POS[k]}"></span>${k}</span>
+          <span class="dbar"><i class="${d >= 0 ? 'up' : 'down'}" style="width:${w.toFixed(1)}%"></i></span>
+          <span class="nv ${d >= 0 ? 'up' : 'down'}">${signed(d)}${after ? `<small>was ${signed(n.diff[k])}</small>` : ''}</span></div>`; }).join('')}
+      <div class="ncall">${after ? 'After trade: ' : ''}<span class="ntag">NEED</span> <b>${now.need}</b> &nbsp; <span class="ntag str">STRENGTH</span> <b>${strong}</b></div></div>`;
+  };
+  const fills = needTrades(me.need, them.need);
+  // Same search across the rest of the league, so there's always somewhere to look.
+  const elsewhere = S.rosters.filter(r => r.roster_id != S.myRid && r.roster_id != S.oppRid)
+    .flatMap(r => needTrades(me.need, needsOf(rosterOf(r.roster_id), avg).need, r.roster_id, 3))
+    .sort((a, b) => b.s - a.s).slice(0, 4);
+  const fillCard = f => {
+    const t = P(f.t), fair = f.ev.edge > 0.1 ? 'a small win for you' : f.ev.edge < -0.1 ? 'a small win for them' : 'fair for both teams';
+    const from = f.rid != S.oppRid ? ` from <b>${esc(teamName(f.rid))}</b>` : '';
+    return `<div class="fill"><div style="min-width:0">
+        <div class="tagline"><span class="k get">GET</span>${esc(t.name)}${injChip(t.inj)} ${teamBadge(t.team)}${posPills(t.pos)} ${valueBadge(t.value)}</div>
+        <div class="tagline" style="margin-top:6px"><span class="k give">GIVE</span>${f.pkg.map(id => `${esc(P(id).name)} ${teamBadge(P(id).team)}`).join(' + ')}</div>
+        <div class="why">${from ? `Trade${from} · ` : ''}Your ${me.need.toLowerCase()} ${signed(f.needGain)} fp/g · lineup ${signed(f.ev.myDL)} · ${fair}${f.helpsThem ? ` · fills their need too` : ''}</div></div>
+      <button class="btn small" type="button" data-fill="${esc(f.pkg.join(','))}|${esc(f.t)}|${f.rid}">Try it</button></div>`;
+  };
+  const fillHTML = fills.map(fillCard).join('');
+  const elseHTML = elsewhere.length ? `<h3 style="margin-top:18px">Elsewhere in the league</h3>
+    <p class="pmeta">The best ${me.need.toLowerCase()} you could get from other teams. Try it switches your trade partner.</p>${elsewhere.map(fillCard).join('')}` : '';
+  $('#needs').innerHTML = `
+    <h3>Team needs</h3>
+    <p class="pmeta">Starting lineup fp/g by position group, compared with the league average (the center line).${traded ? ' Bars show the teams after this trade.' : ''}</p>
+    <div class="needs-grid">${card('You', me, meAfter)}${card(teamName(S.oppRid), them, themAfter)}</div>
+    <h3>Trades that fill your ${me.need.toLowerCase()} need</h3>
+    <p class="pmeta">${esc(teamName(S.oppRid))} players at ${me.need.toLowerCase()}, each with a package from your roster they should accept. Packages that send them help where they're weak rank higher.</p>
+    ${fillHTML || `<div class="empty">${esc(teamName(S.oppRid))} has no ${me.need.toLowerCase()} you could get in a fair trade that improves your lineup.</div>`}
+    ${elseHTML}`;
+}
+
+// The picker serves the 2-team slip ('give' / 'get'), multi-team columns ('m:<roster id>') and the whole league ('all').
+const pickRid = () => { const s = S.pick.side; return s === 'give' ? S.myRid : s === 'get' ? S.oppRid : s === 'all' ? null : Number(s.slice(2)); };
+const pickHas = id => {
+  const s = S.pick.side;
+  if (s === 'all') return S.multi ? !!S.multi.moves[id] : S.give.has(id) || S.get.has(id);
+  return s.startsWith('m:') ? !!S.multi.moves[id] : (s === 'give' ? S.give : S.get).has(id);
+};
+function pickToggle(id) {
+  const s = S.pick.side;
+  if (s === 'all') return toggleAnyPlayer(id);
+  if (s.startsWith('m:')) {
+    if (S.multi.moves[id]) delete S.multi.moves[id]; else S.multi.moves[id] = defaultTo(pickRid());
+  } else {
+    const set = s === 'give' ? S.give : S.get;
+    set.has(id) ? set.delete(id) : set.add(id);
+  }
+}
+// Adding a player from a team outside the deal brings that team in; their players come to you by default.
+function toggleAnyPlayer(id) {
+  const owner = ownerOf(id);
+  if (!S.multi) {
+    if (owner == S.myRid) { S.give.has(id) ? S.give.delete(id) : S.give.add(id); return; }
+    if (owner == S.oppRid) { S.get.has(id) ? S.get.delete(id) : S.get.add(id); return; }
+    // Nobody picked from your partner yet: this player's manager becomes your partner instead of a third team.
+    if (!S.get.size) { S.oppRid = owner; S.get.add(id); return; }
+    ensureMulti();
+  }
+  const m = S.multi;
+  if (m.moves[id]) { delete m.moves[id]; return; }
+  if (!m.teams.includes(owner)) m.teams.push(owner);
+  m.moves[id] = owner == S.myRid ? defaultTo(owner) : S.myRid;
+}
+function openPicker(side) {
+  S.pick = { side, q: '', pos: 'All', prev: S.multi ? involvedTeams() : null };
+  const multi = side.startsWith('m:');
+  $('#pickTitle').textContent = side === 'all' ? 'Add players from any team' : multi ? `Players ${teamName(pickRid())} sends` : side === 'give' ? 'Players you give' : 'Players you get';
+  $('#pickSub').textContent = side === 'all' ? 'Adding a player from a new team brings that team into the trade.' : `From ${teamName(pickRid())}`;
+  $('#pickQ').placeholder = side === 'all' ? 'Search by player, NBA team or manager' : 'Search by name or NBA team';
+  $('#pickQ').value = '';
+  posChips($('#pickPos'), 'All', 'data-ppos');
+  renderPicker();
+  $('#picker').hidden = false;
+  document.body.classList.add('locked');
+  if (matchMedia('(min-width:700px)').matches) $('#pickQ').focus();
+}
+function closePicker() {
+  $('#picker').hidden = true;
+  document.body.classList.remove('locked');
+  fillTeamSelects();
+  if (S.multi) pruneMulti(S.pick.prev || involvedTeams());
+  else renderTrade();
+}
+function renderPicker() {
+  const { q, pos } = S.pick;
+  const all = S.pick.side === 'all';
+  const roster = all ? S.rosters.flatMap(r => rosterOf(r.roster_id)) : rosterOf(pickRid());
+  const set = new Set(roster.filter(pickHas));
+  const needle = q.toLowerCase();
+  const matches = roster.map(P)
+    .filter(p => matchesPos(p, pos) && (!needle || p.name.toLowerCase().includes(needle) || p.team.toLowerCase().includes(needle)
+      || (all && teamName(ownerOf(p.id)).toLowerCase().includes(needle))))
+    .sort((a, b) => b.value - a.value);
+  const list = all ? matches.slice(0, 80) : matches;
+  $('#pickList').innerHTML = list.map(p => `
+    <button type="button" class="prow ${set.has(p.id) ? 'on' : ''}" data-toggle="${esc(p.id)}" aria-pressed="${set.has(p.id)}">
+      <span style="min-width:0"><span class="pname" style="display:block">${esc(p.name)}${injChip(p.inj)}</span>
+        <span class="pmeta">${metaLine(p)}</span>
+        ${all ? `<span class="pmeta">${ownerOf(p.id) == S.myRid ? '<b>Your team</b>' : esc(teamName(ownerOf(p.id)))}</span>` : ''}</span>
+      <span class="pv">${valueBadge(p.value)}<small style="display:block;margin-top:4px">${fmt(p.fpg)} fp/g</small></span>
+      <span class="tick" aria-hidden="true">${set.has(p.id) ? '✓' : '+'}</span>
+    </button>`).join('') + (matches.length > list.length ? `<div class="empty">Showing the top ${list.length} of ${matches.length}. Search by player, NBA team or manager to find more.</div>` : '')
+    || '<div class="empty">No players match.</div>';
+  const n = set.size;
+  $('#pickDone').textContent = n ? `Done (${n})` : 'Done';
+}
+$('#pickQ').addEventListener('input', e => { S.pick.q = e.target.value; renderPicker(); });
+$('#pickDone').addEventListener('click', closePicker);
+$('#picker').addEventListener('click', e => { if (e.target.id === 'picker') closePicker(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#picker').hidden) closePicker(); });
+
+function verdictFor(ev) {
+  const e = ev.edge;
+  if (e > 0.25) return ['good', 'Big win for you', 'You get clearly more value than you give up.'];
+  if (e > 0.1) return ['good', 'Leans your way', 'You come out ahead, and it still looks close enough that they might accept.'];
+  if (e >= -0.1) return ['even', 'Fair trade', 'The value is close on both sides.'];
+  if (e >= -0.25) return ['bad', 'Leans their way', 'You give up somewhat more than you get back. Look at the counteroffers below.'];
+  return ['bad', 'You overpay', 'They win this trade by a lot. Ask for more or offer less.'];
+}
+
+function renderVerdict() {
+  const A = [...S.give], B = [...S.get], box = $('#verdict');
+  if (!A.length && !B.length) {
+    box.innerHTML = `<div class="vbanner"><div class="vtag">Build a trade</div>
+      <p class="vsub">Add the players you'd send and the players you'd get back. To check an offer you received in Sleeper, pick that manager under "Trading with" and add the same players.</p></div>
+      <div class="body">${LEGEND}</div>`;
+    return;
+  }
+  if (!A.length || !B.length) {
+    box.innerHTML = `<div class="vbanner"><div class="vtag">${A.length ? 'Now add what you get' : 'Now add what you give'}</div>
+      <p class="vsub">You need at least one player on each side.${A.length ? ' The best fits from their roster are below.' : ''}</p></div>
+      ${A.length ? `<div class="body">${countersHTML(A, B)}</div>` : ''}`;
+    return;
+  }
+  const ev = evaluate(A, B);
+  const [tone, tag, line] = verdictFor(ev);
+  let lineupNote = '';
+  if (ev.myDL < -1.5 && ev.edge > -0.1) lineupNote = ` One catch: your starting lineup gets weaker by ${fmt(-ev.myDL)} fp/g, so this helps your depth more than your weekly score.`;
+  else if (ev.myDL > 1.5 && ev.edge < -0.1) lineupNote = ` It does raise your starting lineup by ${fmt(ev.myDL)} fp/g, so a contender could reasonably take it.`;
+  const n = A.length - B.length;
+  const spots = n < 0 ? ` You take back ${-n} more player${n < -1 ? 's' : ''}, so you'd have to drop your bottom bench player${n < -1 ? 's' : ''}. That's already counted.`
+    : n > 0 ? ` You free up ${n} roster spot${n > 1 ? 's' : ''} for a waiver pickup.` : '';
+  const total = ev.giveV + ev.getV || 1;
+  const edgePct = Math.max(-99, Math.min(99, ev.edge * 100));
+  const imp = (label, d, a, b) => `<div class="${d >= 0.05 ? 'pos-up' : d <= -0.05 ? 'pos-down' : ''}"><div class="label">${label}</div>
+    <div class="big ${d >= 0 ? 'up' : 'down'}">${signed(d)}</div><div class="pmeta num">${fmt(a)} → ${fmt(b)} fp/g</div></div>`;
+  box.innerHTML = `
+    <div class="vbanner ${tone}">
+      <div class="vhead"><span class="label">Verdict</span><span class="edge">${signed(edgePct, 0)}% edge</span></div>
+      <div class="vtag">${tag}</div>
+      <p class="vsub">${line}${lineupNote}${spots}</p>
+    </div>
+    <div class="body">
+      <div class="meter" aria-hidden="true"><i class="g" style="width:${(ev.giveV / total * 100).toFixed(1)}%"></i><i class="r" style="width:${(ev.getV / total * 100).toFixed(1)}%"></i></div>
+      <div class="meter-l"><span>You give <span class="num">${fmt(ev.giveV)}</span></span><span>You get <span class="num">${fmt(ev.getV)}</span></span></div>
+      <div class="impact">${imp('Your lineup', ev.myDL, ev.myL0, ev.myL1)}${imp('Their lineup', ev.thDL, ev.thL0, ev.thL1)}</div>
+      <div class="sec"><h3>Player breakdown</h3>${breakdownHTML(A, B)}</div>
+      <div class="sec">${countersHTML(A, B)}</div>
+    </div>`;
+}
+
+function breakdownHTML(A, B) {
+  const row = id => { const p = P(id); return `<tr><td class="l">${esc(p.name)}${injChip(p.inj)}</td>
+    <td class="num">${p.curPG == null ? '–' : fmt(p.curPG)}<span class="pmeta"> (${p.cg || 0}g)</span></td>
+    <td class="num">${fmt(p.lastPG)}</td><td class="num">${fmt(p.projPG)}</td>
+    <td class="num">${p.age || '–'}</td><td class="num">${valueBadge(p.value)}</td></tr>`; };
+  return `<div class="tablewrap"><table>
+    <thead><tr><th class="l">Player</th><th>This season</th><th>Last season</th><th>Proj</th><th>Age</th><th>Value</th></tr></thead>
+    <tbody><tr><td colspan="6" class="sidecap l">YOU GIVE</td></tr>${A.map(row).join('')}
+    <tr><td colspan="6" class="sidecap l">YOU GET</td></tr>${B.map(row).join('')}</tbody></table></div>
+    <p class="pmeta">Numbers are fantasy points per game with your league's scoring.</p>`;
+}
+
+// Search small packages that they'd plausibly accept and that help you more.
+function combos(ids, keep) {
+  const out = [];
+  ids.forEach((a, i) => { out.push([a]); ids.slice(i + 1).forEach(b => out.push([a, b])); });
+  if (keep.length) ids.filter(x => !keep.includes(x)).forEach(x => out.push([...keep, x]));
+  return out;
+}
+const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+const score = ev => moveScore(ev.myDV, ev.myDL);
+
+function countersHTML(A, B) {
+  const cur = B.length ? evaluate(A, B) : null;
+  const curScore = cur ? score(cur) : -Infinity;
+  const ask = A.length ? combos(rosterOf(S.oppRid), B)
+    .filter(c => !sameSet(c, B))
+    .map(c => ({ c, ev: evaluate(A, c) }))
+    .filter(x => x.ev.edge <= 0.12 && x.ev.myDL > -0.5 && score(x.ev) > curScore + 0.5)
+    .sort((a, b) => score(b.ev) - score(a.ev)).slice(0, 4) : [];
+  const offer = B.length ? combos(rosterOf(S.myRid), A)
+    .filter(c => !sameSet(c, A))
+    .map(c => ({ c, ev: evaluate(c, B) }))
+    .filter(x => x.ev.edge <= 0.12 && x.ev.edge >= -0.1 && score(x.ev) > curScore + 0.5)
+    .sort((a, b) => score(b.ev) - score(a.ev)).slice(0, 3) : [];
+  const mine = rosterOf(S.myRid), need = S.need?.mine;
+  const needBase = need ? groupStrength(mine)[need] : 0;
+  const item = (x, side) => {
+    const names = x.c.map(id => esc(P(id).name)).join(' + ');
+    const fair = x.ev.edge > 0.1 ? 'a small win for you' : x.ev.edge < -0.1 ? 'a small win for them' : 'fair for both teams';
+    const after = side === 'ask' ? mine.filter(id => !A.includes(id)).concat(x.c) : mine.filter(id => !x.c.includes(id)).concat(B);
+    const fills = need && groupStrength(after)[need] - needBase > 1 ? `<span class="fits">HELPS YOUR ${need.toUpperCase()}</span>` : '';
+    return `<div class="counter"><div style="min-width:0">
+        <div class="what">${side === 'ask' ? 'Ask for' : 'Offer'} ${names}${fills}</div>
+        <div class="why">Your lineup ${signed(x.ev.myDL)} fp/g · value ${signed(x.ev.myDV)} · ${fair}</div></div>
+      <button class="btn ghost small" type="button" data-load="${side}" data-ids="${esc(x.c.join(','))}">Try it</button></div>`;
+  };
+  let html = '<h3>Better counteroffers</h3>';
+  if (!ask.length && !offer.length) return html + '<p class="pmeta">Nothing on their roster beats this offer without becoming lopsided for them.</p>';
+  if (ask.length) html += `<div class="label" style="margin-top:6px">Ask for instead, still giving your current side</div>${ask.map(x => item(x, 'ask')).join('')}`;
+  if (offer.length) html += `<div class="label" style="margin-top:12px">Give instead, for the same return</div>${offer.map(x => item(x, 'offer')).join('')}`;
+  return html;
+}
+
+/* ---------- Free agents ---------- */
+function freeAgents() {
+  return Object.values(S.model.M).filter(p => !p.rostered && p.active && p.team !== 'FA' && (p.cg || p.lg || p.projPG));
+}
+// Players on your roster worth dropping for this pickup, best swap first.
+function dropOptions(fid) {
+  const mine = rosterOf(S.myRid), res = reserveOf(S.myRid);
+  const v0 = teamValue(mine, res), l0 = lineup(mine).total;
+  return mine.filter(d => !res.includes(d)).map(d => {
+    const after = mine.filter(x => x !== d).concat(fid);
+    const dV = teamValue(after, res) - v0, dL = lineup(after).total - l0;
+    return { d, dV, dL, s: moveScore(dV, dL) };
+  }).filter(x => x.s > 0.5).sort((a, b) => b.s - a.s);
+}
+const bestDrop = fid => dropOptions(fid)[0] || null;
+const hotness = p => p.curPG != null && p.cg >= 2 ? p.curPG - (p.lastPG ?? p.projPG ?? p.curPG) : -Infinity;
+
+function renderFA() {
+  const fas = freeAgents();
+  // Suggested moves: check the top available players and keep the swaps that help most.
+  const candidates = [...fas].sort((a, b) => b.value - a.value || b.fpg - a.fpg).slice(0, 60);
+  // Each suggestion gets its own drop, so following several of them still works.
+  const options = candidates.map(p => ({ p, opts: dropOptions(p.id) })).filter(x => x.opts.length)
+    .sort((a, b) => b.opts[0].s - a.opts[0].s);
+  const usedDrops = new Set(), picks = [];
+  for (const { p, opts } of options) {
+    const drop = opts.find(o => !usedDrops.has(o.d));
+    if (!drop) continue;
+    usedDrops.add(drop.d); picks.push({ p, drop });
+    if (picks.length === 5) break;
+  }
+  $('#moves').innerHTML = picks.map(({ p, drop }) => { const d = P(drop.d); return `
+    <div class="move"><div style="min-width:0">
+      <div class="what">
+        <span class="tagline"><span class="add-n">ADD</span>${esc(p.name)}${injChip(p.inj)} ${teamBadge(p.team)}${posPills(p.pos)}</span>
+        <span class="tagline"><span class="drop-n">DROP</span>${esc(d.name)} ${teamBadge(d.team)}${posPills(d.pos)}</span></div>
+      <div class="pmeta" style="margin-top:4px">${fmt(p.fpg)} fp/g in, ${fmt(d.fpg)} fp/g out${S.trending[p.id] ? ` · ${S.trending[p.id].toLocaleString()} adds in 48h` : ''}</div></div>
+      <div class="gain"><div class="${drop.dL >= 0 ? 'up' : 'down'}">${signed(drop.dL)}</div><div class="pmeta">lineup fp/g</div></div></div>`; }).join('')
+    || '<div class="empty">No pickup beats anyone on your roster right now. Your bench is in good shape.</div>';
+
+  posChips($('#faPos'), S.fa.pos, 'data-fpos');
+  const key = { fpg: p => p.fpg, cur: p => p.curPG ?? -1, proj: p => p.projPG ?? -1, hot: hotness, trend: p => S.trending[p.id] || 0 }[S.fa.sort];
+  const list = fas.filter(p => matchesPos(p, S.fa.pos) && (S.fa.sort !== 'trend' || S.trending[p.id]) && (S.fa.sort !== 'hot' || hotness(p) > -Infinity))
+    .sort((a, b) => key(b) - key(a)).slice(0, 40);
+  $('#faList').innerHTML = list.map(p => {
+    const h = hotness(p), drop = bestDrop(p.id);
+    const tags = (h > 3 ? `<span class="chip hot">HOT ${signed(h)}</span>` : '') + (S.trending[p.id] ? `<span class="chip hot">${S.trending[p.id].toLocaleString()} ADDS</span>` : '');
+    return `<div class="fa">
+      <div style="min-width:0"><div class="pname">${esc(p.name)}${injChip(p.inj)}${tags}</div><div class="pmeta">${metaLine(p)}</div></div>
+      <div class="pv"><b>${fmt(p.fpg)}</b><small>fp/g</small><div style="margin-top:4px">${valueBadge(p.value)}</div></div>
+      <div class="line">This season ${p.curPG == null ? '–' : fmt(p.curPG) + ' (' + p.cg + 'g)'} · Last ${fmt(p.lastPG)} · Proj ${fmt(p.projPG)}</div>
+      <div class="advice">${drop ? `<span class="up">Worth a pickup:</span> drop ${esc(P(drop.d).name)} for ${signed(drop.dL)} lineup fp/g` : '<span class="pmeta">Not better than anyone on your roster</span>'}</div>
+    </div>`; }).join('') || '<div class="empty">No available players match this filter.</div>';
+}
+$('#faSort').addEventListener('change', e => { S.fa.sort = e.target.value; renderFA(); });
+
+/* ---------- League ---------- */
+function leagueRows() {
+  return S.rosters.map(r => {
+    const ids = rosterOf(r.roster_id);
+    const lu = lineup(ids);
+    return { rid: r.roster_id, name: teamName(r.roster_id), ids, lu, groups: groupStrength(ids, lu), val: teamValue(ids, reserveOf(r.roster_id)),
+      rec: `${r.settings?.wins ?? 0}-${r.settings?.losses ?? 0}` };
+  }).sort((a, b) => b.lu.total - a.lu.total);
+}
+function renderLeague() {
+  const rows = leagueRows();
+  const best = rows[0].lu.total || 1, worst = rows[rows.length - 1].lu.total;
+  $('#powerTbl').innerHTML = `<thead><tr><th class="l">#</th><th class="l">Team</th><th>Record</th><th class="l">Lineup</th><th>Value</th></tr></thead><tbody>` +
+    rows.map((r, i) => `<tr class="click ${r.rid == S.myRid ? 'me' : ''} ${r.rid == S.viewRid ? 'viewing' : ''}" data-view="${r.rid}" tabindex="0">
+      <td class="l"><span class="rank ${i < 3 ? 'r' + (i + 1) : ''}">${i + 1}</span></td><td class="l">${esc(r.name)}</td><td class="num">${r.rec}</td>
+      <td class="num l barcell">${fmt(r.lu.total)}<span class="bar" style="width:${(15 + 65 * (r.lu.total - worst) / Math.max(1, best - worst)).toFixed(0)}px"></span></td>
+      <td class="num">${fmt(r.val, 0)}</td></tr>`).join('') + '</tbody>';
+
+  const t = rows.find(r => r.rid == S.viewRid) || rows[0];
+  const rank = rows.indexOf(t) + 1, n = rows.length;
+  $('#viewSel').value = t.rid;
+  $('#tradeWith').hidden = t.rid == S.myRid;
+  const avgSlot = t.lu.slots.map((_, i) => rows.reduce((s, r) => s + (r.lu.slots[i].pid ? P(r.lu.slots[i].pid).adj : 0), 0) / n);
+  const avgGroup = g => rows.reduce((s, r) => s + r.groups[g], 0) / n;
+  const strongest = Object.keys(t.groups).map(g => ({ g, d: t.groups[g] - avgGroup(g) })).sort((a, b) => b.d - a.d);
+  const starters = new Set(t.lu.slots.map(s => s.pid).filter(Boolean));
+  const bench = t.ids.filter(id => !starters.has(id)).map(P).sort((a, b) => b.value - a.value);
+  const res = reserveOf(t.rid);
+  $('#teamView').innerHTML = `
+    <div class="tiles">
+      <div class="tile"><div class="label">Lineup</div><div class="big">${fmt(t.lu.total)}</div><div class="pmeta">#${rank} of ${n} · fp/g</div></div>
+      <div class="tile good"><div class="label">Strength</div><div class="big up" style="font-size:15px;font-family:var(--body);font-weight:600">${strongest[0].g}</div><div class="pmeta">${signed(strongest[0].d)} vs avg</div></div>
+      <div class="tile bad"><div class="label">Weakness</div><div class="big down" style="font-size:15px;font-family:var(--body);font-weight:600">${strongest[2].g}</div><div class="pmeta">${signed(strongest[2].d)} vs avg</div></div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th class="l">Slot</th><th class="l">Starter</th><th>fp/g</th><th>Avg</th><th>Diff</th><th>Value</th></tr></thead><tbody>
+      ${t.lu.slots.map((s, i) => { const p = s.pid ? P(s.pid) : null, v = p ? p.adj : 0, d = v - avgSlot[i];
+        return `<tr><td class="l slot">${esc(s.s)}</td><td class="l">${p ? teamBadge(p.team) + ' ' + esc(p.name) + injChip(p.inj) : '<span class="pmeta">Empty</span>'}</td><td class="num">${fmt(v)}</td><td class="num">${fmt(avgSlot[i])}</td><td class="num ${d >= 0 ? 'up' : 'down'}">${signed(d)}</td><td class="num">${p ? valueBadge(p.value) : '–'}</td></tr>`; }).join('')}
+      <tr><td colspan="6" class="sidecap l">BENCH</td></tr>
+      ${bench.map(p => `<tr><td class="l slot">${res.includes(p.id) ? 'IR' : 'BN'}</td><td class="l">${teamBadge(p.team)} ${esc(p.name)}${injChip(p.inj)}</td><td class="num">${fmt(p.adj)}</td><td></td><td></td><td class="num">${valueBadge(p.value)}</td></tr>`).join('') || '<tr><td colspan="6" class="pmeta l">No bench players</td></tr>'}
+      </tbody></table></div>
+    <p class="pmeta">fp/g here is adjusted for injuries and missed games. Avg is the league average at that lineup slot.</p>`;
+}
+$('#viewSel').addEventListener('change', e => { S.viewRid = Number(e.target.value); renderLeague(); });
+$('#tradeWith').addEventListener('click', () => {
+  S.oppRid = S.viewRid; S.get.clear(); fillTeamSelects(); renderTrade(); showTab('trade');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ---------- Clicks ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-pick],[data-remove],[data-toggle],[data-load],[data-fill],[data-tab],[data-view],[data-ppos],[data-fpos],[data-multi],[data-two],[data-madd],[data-mremove],[data-mprune],[data-mdel],[data-mbalance]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.pick) openPicker(d.pick);
+  else if (d.fill) {
+    const [give, get, rid] = d.fill.split('|');
+    if (Number(rid) !== S.oppRid) { S.oppRid = Number(rid); fillTeamSelects(); }
+    S.give = new Set(give.split(',')); S.get = new Set([get]);
+    renderTrade();
+    $('#slip').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  else if (d.remove) { (d.remove === 'give' ? S.give : S.get).delete(d.id); renderTrade(); }
+  else if (d.toggle) { pickToggle(d.toggle); renderPicker(); }
+  else if (d.multi) enterMulti();
+  else if (d.two) exitMulti();
+  else if (d.madd) {
+    const missing = S.rosters.map(r => r.roster_id).filter(rid => !S.multi.teams.includes(rid));
+    S.multi.teams.push(...(d.madd === 'all' ? missing : missing.slice(0, 1)));
+    renderTrade();
+  }
+  else if (d.mremove) { const i = Number(d.mremove); dropTeamMoves(S.multi.teams[i]); S.multi.teams.splice(i, 1); afterTeamRemoval(); }
+  else if (d.mprune) {
+    const moving = Object.keys(S.multi.moves);
+    S.multi.teams = S.multi.teams.filter(t => t == S.myRid || moving.some(id => ownerOf(id) == t || S.multi.moves[id] == t));
+    afterTeamRemoval();
+  }
+  else if (d.mdel) { const prev = involvedTeams(); delete S.multi.moves[d.mdel]; pruneMulti(prev); }
+  else if (d.mbalance) { const [id, to] = d.mbalance.split('|'); S.multi.moves[id] = Number(to); renderTrade(); }
+  else if (d.load) { const set = d.load === 'ask' ? S.get : S.give; set.clear(); d.ids.split(',').forEach(id => set.add(id)); renderTrade(); }
+  else if (d.tab) showTab(d.tab);
+  else if (d.view) { S.viewRid = Number(d.view); renderLeague(); }
+  else if (d.ppos) { S.pick.pos = d.ppos; posChips($('#pickPos'), d.ppos, 'data-ppos'); renderPicker(); }
+  else if (d.fpos) { S.fa.pos = d.fpos; renderFA(); }
+});
+document.addEventListener('change', e => {
+  const d = e.target.dataset;
+  if (d.mto) {
+    const prev = involvedTeams(), to = Number(e.target.value);
+    if (!S.multi.teams.includes(to)) S.multi.teams.push(to);
+    S.multi.moves[d.mto] = to;
+    pruneMulti(prev);
+  }
+  else if (d.mteam) {
+    const i = Number(d.mteam);
+    dropTeamMoves(S.multi.teams[i]);
+    S.multi.teams[i] = Number(e.target.value);
+    renderTrade();
+  }
+});
+document.addEventListener('keydown', e => {
+  const row = e.target.closest?.('[data-view]');
+  if (row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); S.viewRid = Number(row.dataset.view); renderLeague(); }
+});
+
+const last = recall('htl.user');
+if (last) $('#username').value = last;
+</script>
+</body>
+</html>
